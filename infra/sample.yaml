@@ -1,9 +1,4 @@
 AWSTemplateFormatVersion: '2010-09-09'
-Parameters:
-  HostedZoneName:
-    Type: String
-  Certificate:
-    Type: String
 Resources:
   LambdaRole:
     Type: AWS::IAM::Role
@@ -70,13 +65,6 @@ Resources:
       GroupId: !Ref SecurityGroup
       IpProtocol: -1
       SourceSecurityGroupId: !Ref SecurityGroup
-  RouteTable:
-    Type: AWS::EC2::RouteTable
-    Properties:
-      VpcId: !Ref Vpc
-      Tags:
-        - Key: Name
-          Value: private-api-gateway
   Subnet1:
     Type: AWS::EC2::Subnet
     Properties:
@@ -101,16 +89,6 @@ Resources:
       Tags:
         - Key: Name
           Value: private-api-gateway
-  Subnet1RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref Subnet1
-      RouteTableId: !Ref RouteTable
-  Subnet2RouteTableAssociation:
-    Type: AWS::EC2::SubnetRouteTableAssociation
-    Properties:
-      SubnetId: !Ref Subnet2
-      RouteTableId: !Ref RouteTable
   ApiGatewayVpcEndPoint:
     Type: AWS::EC2::VPCEndpoint
     Properties:
@@ -209,61 +187,6 @@ Resources:
             Condition:
               StringEquals:
                 aws:SourceVpce: !Ref ApiGatewayVpcEndPoint
-  LoadBalancer:
-    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
-    Properties:
-      IpAddressType: ipv4
-      Scheme: internal
-      SecurityGroups:
-        - !Ref SecurityGroup
-      Subnets:
-        - !Ref Subnet1
-        - !Ref Subnet2
-      Tags:
-        - Key: Name
-          Value: private-api-gateway
-      Type: application
-  TargetGroup:
-    Type: AWS::ElasticLoadBalancingV2::TargetGroup
-    Properties:
-      Port: 443
-      Protocol: HTTPS
-      TargetType: ip
-      VpcId: !Ref Vpc
-  Listener:
-    Type: AWS::ElasticLoadBalancingV2::Listener
-    Properties:
-      Certificates:
-        - CertificateArn: !Ref Certificate
-      DefaultActions:
-        - Type: forward
-          TargetGroupArn: !Ref TargetGroup
-      LoadBalancerArn: !Ref LoadBalancer
-      Port: 443
-      Protocol: HTTPS
-      SslPolicy: ELBSecurityPolicy-2016-08
-  HostedZone:
-    Type: AWS::Route53::HostedZone
-    Properties:
-      Name: !Ref HostedZoneName
-      VPCs:
-        - VPCId: !Ref Vpc
-          VPCRegion: !Ref AWS::Region
-  RecordSet:
-    Type: AWS::Route53::RecordSet
-    Properties:
-      AliasTarget:
-        DNSName:
-          Fn::GetAtt:
-            - LoadBalancer
-            - DNSName
-        HostedZoneId:
-          Fn::GetAtt:
-            - LoadBalancer
-            - CanonicalHostedZoneID
-      HostedZoneId: !Ref HostedZone
-      Name: !Sub "apigateway.${HostedZoneName}"
-      Type: A
 Outputs:
   LambdaRole:
     Value:
