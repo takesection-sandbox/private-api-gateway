@@ -1,0 +1,41 @@
+service: private-api-gateway
+
+custom:
+  restapi_id:
+    "Fn::ImportValue": "private-apigateway-apigateway"
+  restapi_root_resourceid:
+    "Fn::ImportValue": "private-apigateway-root-id"
+  role:
+    "Fn::ImportValue": "private-apigateway-lambda-role"
+  security_group:
+    "Fn::ImportValue": "private-apigateway-security-group"
+  subnet1:
+    "Fn::ImportValue": "private-apigateway-subnet1"
+  subnet2:
+    "Fn::ImportValue": "private-apigateway-subnet2"
+
+provider:
+  name: aws
+  runtime: python3.7
+  timeout: 30
+  apiGateway:
+    restApiId: ${self:custom.restapi_id}
+    restApiRootResourceId: ${self:custom.restapi_root_resourceid}
+  role: ${self:custom.role}
+  vpc:
+    securityGroupIds:
+      - ${self:custom.security_group}
+    subnetIds:
+      - ${self:custom.subnet1}
+      - ${self:custom.subnet2}
+
+package:
+  artifact: ../target/api.zip
+
+functions:
+  hello:
+    handler: hello.lambda_handler
+    events:
+      - http:
+          path: hello
+          method: get
